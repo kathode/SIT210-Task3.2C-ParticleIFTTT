@@ -1,0 +1,63 @@
+
+#include <BH1750Lib.h>
+
+int total_time = 0;
+int test = 0;
+int weekday = int(Time.weekday());
+Timer timer(1, print_every_second);
+
+void print_every_second()
+{
+    static int count = 0;
+    Log.info("count=%d", count++);
+}
+
+
+
+
+BH1750Lib lightSensor;
+
+void setup() {
+    lightSensor.begin(BH1750LIB_MODE_CONTINUOUSHIGHRES);
+    
+}
+
+void loop() {
+    uint16_t lux = lightSensor.lightLevel();
+    String data = String(lux);
+    Particle.publish("lux", data); //publish to thingspeak for monitoring 
+    
+    
+    if (lux > 500 )
+    {
+        total_time = total_time + timer.start();
+        Particle.publish("time", String(total_time));
+    }
+    
+    if (lux > 500 and test == 0)
+    {
+        Particle.publish("Sunny", "Sunny");
+        test = 1;
+    }
+    
+    if (lux < 500 and test == 1)
+    {
+        Particle.publish("Not Sunny!", "Not Sunny!");
+        //Particle.publish("Total_time", String(total_time));
+        test = 0;
+    }
+    
+    if (weekday + 1 == Time.weekday()) // new day of the week
+    {
+        total_time = 0;
+    }
+    
+    if (total_time == 7200)//seconds or 2 hours
+    {
+        Particle.publish("2 hour sunlight exposure achieved", "GJ");
+    }
+    
+
+    delay(1000);
+
+}
